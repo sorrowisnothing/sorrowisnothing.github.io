@@ -14,7 +14,7 @@
   }
 
   #left {
-   width: 40%;
+    width: 40%;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -24,7 +24,7 @@
   }
 
   h1 {
-      color: black;
+    color: black;
     font-size: 5.1em;
     letter-spacing: 1px;
     text-align: left;
@@ -40,7 +40,7 @@
   }
 
   #image-box img {
-  width: 100%;
+    width: 100%;
     height: 100%;
     object-fit: cover; /* 铺满容器，无白边 */
     position: absolute;
@@ -131,13 +131,12 @@
   <button class="btn-close" onclick="closePopup()">关闭</button>
 </div>
 
-<!-- ✅ Firebase SDK 正确加载 -->
-<!-- 用 Cloudflare 镜像，加载更稳定 -->
+<!-- Firebase SDK -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
 
 <script>
-  // ✅ 初始化 Firebase
+  // 初始化 Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyByFoQX50OAAYqtaw269aHLcvtuluuvjgc",
     authDomain: "searchingforjws.firebaseapp.com",
@@ -151,14 +150,14 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  // ✅ 全局变量
+  // 全局变量
   let isAdmin = false;
   const n = 48;
   const grid = document.getElementById('grid');
   const popup = document.getElementById('popup');
   const popupContent = document.getElementById('popup-content');
 
-  // ✅ 初始化格子
+  // 初始化格子
   for (let i = 1; i <= n; i++) {
     const cell = document.createElement('div');
     cell.className = 'cell';
@@ -167,18 +166,20 @@
     grid.appendChild(cell);
   }
 
+  // 刷新格子状态
   function refreshGrid() {
     db.ref('questions').once('value').then(snapshot => {
       const data = snapshot.val() || {};
       document.querySelectorAll('.cell').forEach((cell, i) => {
         const key = 'Q' + (i + 1);
         if (data[key]) cell.classList.add('used');
+        else cell.classList.remove('used');
       });
     });
   }
   refreshGrid();
 
-  // ✅ 管理员模式
+  // 管理员模式
   window.addEventListener('keydown', e => {
     if (e.key === '/') {
       let input = prompt('输入 /admin 进入管理员模式：');
@@ -187,58 +188,38 @@
         if (pw === 'jws0522') {
           isAdmin = true;
           alert('进入管理员模式');
+          addAdminClearButton(); // 登录成功后添加按钮
         } else alert('密码错误');
       }
     }
   });
 
- // 管理员清空所有问答按钮
-function addAdminClearButton() {
-  // 创建按钮
-  const clearBtn = document.createElement('button');
-  clearBtn.className = 'btn-clear';
-  clearBtn.innerText = '清空所有问答';
-
-  // 样式，可自定义
-  clearBtn.style.position = 'fixed';
-  clearBtn.style.top = '20px';
-  clearBtn.style.right = '20px';
-  clearBtn.style.backgroundColor = '#9C3D34';
-  clearBtn.style.color = 'white';
-  clearBtn.style.padding = '10px 15px';
-  clearBtn.style.border = 'none';
-  clearBtn.style.borderRadius = '5px';
-  clearBtn.style.cursor = 'pointer';
-  clearBtn.style.zIndex = '999';
-
-  clearBtn.onclick = () => {
-    if (confirm('确定清空所有问答吗？此操作不可恢复！')) {
-      db.ref('questions').remove().then(() => {
-        document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('used'));
-        alert('已清空所有问答');
-      }).catch(err => alert('清空失败: ' + err));
-    }
-  };
-
-  document.body.appendChild(clearBtn);
-}
-
-// 管理员模式登录成功后调用
-window.addEventListener('keydown', e => {
-  if (e.key === '/') {
-    let input = prompt('输入 /admin 进入管理员模式：');
-    if (input === '/admin') {
-      const pw = prompt('管理员密码：');
-      if (pw === 'jws0522') {
-        isAdmin = true;
-        alert('进入管理员模式');
-        addAdminClearButton(); // ✅ 这里调用按钮
-      } else alert('密码错误');
-    }
+  // 管理员清空所有问答按钮
+  function addAdminClearButton() {
+    const clearBtn = document.createElement('button');
+    clearBtn.innerText = '清空所有问答';
+    clearBtn.style.position = 'fixed';
+    clearBtn.style.top = '20px';
+    clearBtn.style.right = '20px';
+    clearBtn.style.backgroundColor = '#9C3D34';
+    clearBtn.style.color = 'white';
+    clearBtn.style.padding = '10px 15px';
+    clearBtn.style.border = 'none';
+    clearBtn.style.borderRadius = '5px';
+    clearBtn.style.cursor = 'pointer';
+    clearBtn.style.zIndex = '999';
+    clearBtn.onclick = () => {
+      if (confirm('确定清空所有问答吗？此操作不可恢复！')) {
+        db.ref('questions').remove().then(() => {
+          document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('used'));
+          alert('已清空所有问答');
+        }).catch(err => alert('清空失败: ' + err));
+      }
+    };
+    document.body.appendChild(clearBtn);
   }
-});
 
-  // ✅ 打开问题
+  // 打开问题
   function openQuestion(i) {
     const key = 'Q' + i;
     db.ref('questions/' + key).once('value').then(snapshot => {
@@ -270,7 +251,7 @@ window.addEventListener('keydown', e => {
     });
   }
 
-  // ✅ 提交问题
+  // 提交问题
   function submitQuestion(i) {
     const question = document.getElementById('questionInput').value.trim();
     if (!question) return alert('请输入问题！');
@@ -281,7 +262,7 @@ window.addEventListener('keydown', e => {
     popupContent.innerHTML = `<p>你的问题已提交！请记住密码：<b>${password}</b></p>`;
   }
 
-  // ✅ 回复问题（管理员）
+  // 回复问题（管理员）
   function replyQuestion(i) {
     const reply = document.getElementById('replyInput').value.trim();
     if (!reply) return alert('请输入回复内容');
@@ -293,17 +274,18 @@ window.addEventListener('keydown', e => {
 
   function closePopup() { popup.style.display = 'none'; }
 
-  // ✅ 图片轮播
+  // 图片轮播
   const imgs = document.querySelectorAll('#image-box img');
   let current = 0;
   function cycleImages() {
     imgs[current].classList.remove('active');
     current = (current + 1) % imgs.length;
     imgs[current].classList.add('active');
-    setTimeout(cycleImages, 6000 + Math.random() * 4000);
+    setTimeout(cycleImages, 5000 + Math.random() * 5000);
   }
   setTimeout(cycleImages, 5000);
 </script>
 </body>
 </html>
+
 
