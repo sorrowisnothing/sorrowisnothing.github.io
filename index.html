@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>Searching For JWS</title>
+<style>
+  body {
+    font-family: 'Bodoni MT Condensed', serif;
+    background: #fafafa;
+    margin: 0;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* 左侧区域 */
+  #left {
+    width: 40%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 25px 0 0 60px; /* 标题离边框1.5cm */
+  }
+
+  h1 {
+    color: black;
+    font-size: 5.1em;
+    letter-spacing: 1px;
+    text-align: left;
+    margin-bottom: 30px;
+  }
+
+  #image-box {
+    width: 100%;
+    aspect-ratio: 3/4.1;
+    overflow: hidden;
+    position: relative;
+    border-radius: 8px;
+  }
+
+  #image-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    opacity: 0;
+    transition: opacity 2s ease-in-out;
+  }
+
+  #image-box img.active {
+    opacity: 1;
+  }
+
+  /* 右侧问答墙 */
+  #right {
+    width: 60%;
+    padding: 60px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(6, 60px);
+    grid-gap: 30px;
+    justify-content: center;
+    margin-top: 100px;
+  }
+
+  .cell {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    background-color: #23406F;
+    transition: transform 0.15s;
+  }
+
+  .cell:hover {
+    transform: scale(1.05);
+  }
+
+  .cell.used {
+    background-color: #9C3D34;
+  }
+
+  .popup {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: white; padding: 20px; border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    width: 340px; display: none;
+    font-family: sans-serif;
+  }
+
+  textarea { width: 100%; height: 100px; }
+
+  button.btn-primary {
+    background-color: #23406F;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  button.btn-close {
+    background-color: #ccc;
+    margin-top: 10px;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="left">
+  <h1>Searching For JWS</h1>
+  <div id="image-box">
+    <img src="https://i.imgur.com/6lFvwOu.jpeg" class="active">
+    <img src="https://i.imgur.com/AVzMUjF.jpeg">
+    <img src="https://i.imgur.com/LUldKLJ.jpeg">
+    <img src="https://i.imgur.com/KUWaqOv.jpeg">
+    <img src="https://i.imgur.com/ci3aMv2.jpeg">
+    <img src="https://i.imgur.com/3SkyycN.jpeg">
+    <img src="https://i.imgur.com/d2Yd15y.jpeg">
+  </div>
+</div>
+
+<div id="right">
+  <div id="grid"></div>
+</div>
+
+<div class="popup" id="popup">
+  <div id="popup-content"></div>
+  <button class="btn-close" onclick="closePopup()">关闭</button>
+</div>
+
+<script>
+const n = 48;
+const grid = document.getElementById('grid');
+const popup = document.getElementById('popup');
+const popupContent = document.getElementById('popup-content');
+let isAdmin = false; // 管理员模式开关
+initGrid();
+
+function initGrid() {
+  grid.innerHTML = '';
+  for (let i=1; i<=n; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.innerText = 'Q' + i;
+    if (localStorage.getItem('Q'+i)) cell.classList.add('used');
+    cell.onclick = () => openQuestion(i);
+    grid.appendChild(cell);
+  }
+}
+
+function openQuestion(i) {
+  const key = 'Q'+i;
+  const data = JSON.parse(localStorage.getItem(key) || 'null');
+
+  if (isAdmin) {
+    // 管理员可以直接查看和回复
+    let reply = data ? data.reply : '';
+    popupContent.innerHTML = `<h3>Q${i}</h3>` +
+      `<p><b>问题：</b>${data ? data.question : '(暂无问题)'}</p>` +
+      `<textarea id='adminReply'>${reply}</textarea>` +
+      `<button class='btn-primary' onclick='submitAdminReply(${i})'>提交回复</button>`;
+    popup.style.display = 'block';
+    return;
+  }
+
+  if (!data) {
+    popupContent.innerHTML = `<h3>在 Q${i} 提问</h3><textarea id="questionInput" placeholder="写下你的问题..."></textarea><button class="btn-primary" onclick="submitQuestion(${i})">我问完啦</button>`;
+  } else {
+    const pw = prompt('请输入密码以查看 Q'+i+'：');
+    if (pw === data.password) showQuestion(i, data);
+    else { alert('密码错误！'); return; }
+  }
+  popup.style.display = 'block';
+}
+
+function submitAdminReply(i) {
+  const replyText = document.getElementById('adminReply').value.trim();
+  const key = 'Q'+i;
+  let data = JSON.parse(localStorage.getItem(key) || '{}');
+  data.reply = replyText;
+  localStorage.setItem(key, JSON.stringify(data));
+  popup.style.display = 'none';
+  initGrid();
+}
+
+function showQuestion(i, data) {
+  popupContent.innerHTML = `<h3>Q${i}</h3><p><b>问题：</b>${data.question}</p><p><b>回复：</b>${data.reply ? data.reply : '(暂时还没有回复)'}</p>`;
+}
+
+function submitQuestion(i) {
+  const question = document.getElementById('questionInput').value.trim();
+  if (!question) return alert('请先输入问题！');
+  const password = Math.floor(1000 + Math.random()*9000).toString();
+  const data = { question, password, reply: "" };
+  localStorage.setItem('Q'+i, JSON.stringify(data));
+  document.querySelectorAll('.cell')[i-1].classList.add('used');
+  popupContent.innerHTML = `<p>你的问题已提交！</p><p>请记住密码：<b>${password}</b></p>`;
+}
+
+function closePopup() {
+  popup.style.display = 'none';
+}
+
+/* 图片轮播 */
+const imgs = document.querySelectorAll('#image-box img');
+let current = 0;
+function cycleImages() {
+  imgs[current].classList.remove('active');
+  current = (current + 1) % imgs.length;
+  imgs[current].classList.add('active');
+  const delay = 5000 + Math.random() * 5000;
+  setTimeout(cycleImages, delay);
+}
+setTimeout(cycleImages, 5000);
+
+/* 键盘监听 /admin */
+let typed = '';
+document.addEventListener('keydown', (e) => {
+    typed += e.key;
+    if (typed.endsWith('/admin')) {
+        const pw = prompt('请输入管理员密码：');
+        if (pw === '1234') { // 这里可以自定义管理员密码
+            alert('管理员模式已开启！');
+            isAdmin = true;
+        } else {
+            alert('密码错误！');
+        }
+        typed = '';
+    }
+});
+</script>
+</body>
+</html>
