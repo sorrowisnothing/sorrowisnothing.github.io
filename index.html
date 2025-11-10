@@ -192,35 +192,51 @@
     }
   });
 
-  <!-- 管理员清空所有问答按钮 -->
-<script>
+ // 管理员清空所有问答按钮
 function addAdminClearButton() {
-  if (!isAdmin) return; // 不是管理员不显示
-
   // 创建按钮
   const clearBtn = document.createElement('button');
   clearBtn.className = 'btn-clear';
   clearBtn.innerText = '清空所有问答';
 
-  // 按钮点击事件
+  // 样式，可自定义
+  clearBtn.style.position = 'fixed';
+  clearBtn.style.top = '20px';
+  clearBtn.style.right = '20px';
+  clearBtn.style.backgroundColor = '#9C3D34';
+  clearBtn.style.color = 'white';
+  clearBtn.style.padding = '10px 15px';
+  clearBtn.style.border = 'none';
+  clearBtn.style.borderRadius = '5px';
+  clearBtn.style.cursor = 'pointer';
+  clearBtn.style.zIndex = '999';
+
   clearBtn.onclick = () => {
     if (confirm('确定清空所有问答吗？此操作不可恢复！')) {
       db.ref('questions').remove().then(() => {
-        // 清空格子样式
         document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('used'));
         alert('已清空所有问答');
       }).catch(err => alert('清空失败: ' + err));
     }
   };
 
-  // 添加到页面
   document.body.appendChild(clearBtn);
 }
 
-// 在管理员登录成功后调用
-// 示例：在 isAdmin = true 后
-if (isAdmin) addAdminClearButton();
-</script>
+// 管理员模式登录成功后调用
+window.addEventListener('keydown', e => {
+  if (e.key === '/') {
+    let input = prompt('输入 /admin 进入管理员模式：');
+    if (input === '/admin') {
+      const pw = prompt('管理员密码：');
+      if (pw === 'jws0522') {
+        isAdmin = true;
+        alert('进入管理员模式');
+        addAdminClearButton(); // ✅ 这里调用按钮
+      } else alert('密码错误');
+    }
+  }
+});
 
   // ✅ 打开问题
   function openQuestion(i) {
