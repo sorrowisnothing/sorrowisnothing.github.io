@@ -21,7 +21,7 @@
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
-    padding: 25px 0 0 60px; /* 标题离边框1.5cm */
+    padding: 25px 0 0 60px;
   }
 
   h1 {
@@ -33,7 +33,7 @@
   }
 
   #image-box {
-    width: 100%;
+    width: 145%;
     aspect-ratio: 3/4.1;
     overflow: hidden;
     position: relative;
@@ -146,106 +146,123 @@
   <button class="btn-close" onclick="closePopup()">关闭</button>
 </div>
 
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+
 <script>
-const n = 48;
-const grid = document.getElementById('grid');
-const popup = document.getElementById('popup');
-const popupContent = document.getElementById('popup-content');
-let isAdmin = false; // 管理员模式开关
-initGrid();
+  // ====== Firebase 配置 ======
+  const firebaseConfig = {
+    apiKey: "AIzaSyByFoQX50OAAYqtaw269aHLcvtuluuvjgc",
+    authDomain: "searchingforjws.firebaseapp.com",
+    databaseURL: "https://searchingforjws-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "searchingforjws",
+    storageBucket: "searchingforjws.firebasestorage.app",
+    messagingSenderId: "150080883645",
+    appId: "1:150080883645:web:0338463776f07c603260d4",
+    measurementId: "G-Z7FHGNZPNL"
+  };
 
-function initGrid() {
-  grid.innerHTML = '';
-  for (let i=1; i<=n; i++) {
-    const cell = document.createElement('div');
-    cell.className = 'cell';
-    cell.innerText = 'Q' + i;
-    if (localStorage.getItem('Q'+i)) cell.classList.add('used');
-    cell.onclick = () => openQuestion(i);
-    grid.appendChild(cell);
-  }
-}
+  // 初始化 Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-function openQuestion(i) {
-  const key = 'Q'+i;
-  const data = JSON.parse(localStorage.getItem(key) || 'null');
+  const n = 48;
+  const grid = document.getElementById('grid');
+  const popup = document.getElementById('popup');
+  const popupContent = document.getElementById('popup-content');
+  let isAdmin = false;
 
-  if (isAdmin) {
-    // 管理员可以直接查看和回复
-    let reply = data ? data.reply : '';
-    popupContent.innerHTML = `<h3>Q${i}</h3>` +
-      `<p><b>问题：</b>${data ? data.question : '(暂无问题)'}</p>` +
-      `<textarea id='adminReply'>${reply}</textarea>` +
-      `<button class='btn-primary' onclick='submitAdminReply(${i})'>提交回复</button>`;
-    popup.style.display = 'block';
-    return;
-  }
-
-  if (!data) {
-    popupContent.innerHTML = `<h3>在 Q${i} 提问</h3><textarea id="questionInput" placeholder="写下你的问题..."></textarea><button class="btn-primary" onclick="submitQuestion(${i})">我问完啦</button>`;
-  } else {
-    const pw = prompt('请输入密码以查看 Q'+i+'：');
-    if (pw === data.password) showQuestion(i, data);
-    else { alert('密码错误！'); return; }
-  }
-  popup.style.display = 'block';
-}
-
-function submitAdminReply(i) {
-  const replyText = document.getElementById('adminReply').value.trim();
-  const key = 'Q'+i;
-  let data = JSON.parse(localStorage.getItem(key) || '{}');
-  data.reply = replyText;
-  localStorage.setItem(key, JSON.stringify(data));
-  popup.style.display = 'none';
   initGrid();
-}
 
-function showQuestion(i, data) {
-  popupContent.innerHTML = `<h3>Q${i}</h3><p><b>问题：</b>${data.question}</p><p><b>回复：</b>${data.reply ? data.reply : '(暂时还没有回复)'}</p>`;
-}
-
-function submitQuestion(i) {
-  const question = document.getElementById('questionInput').value.trim();
-  if (!question) return alert('请先输入问题！');
-  const password = Math.floor(1000 + Math.random()*9000).toString();
-  const data = { question, password, reply: "" };
-  localStorage.setItem('Q'+i, JSON.stringify(data));
-  document.querySelectorAll('.cell')[i-1].classList.add('used');
-  popupContent.innerHTML = `<p>你的问题已提交！</p><p>请记住密码：<b>${password}</b></p>`;
-}
-
-function closePopup() {
-  popup.style.display = 'none';
-}
-
-/* 图片轮播 */
-const imgs = document.querySelectorAll('#image-box img');
-let current = 0;
-function cycleImages() {
-  imgs[current].classList.remove('active');
-  current = (current + 1) % imgs.length;
-  imgs[current].classList.add('active');
-  const delay = 5000 + Math.random() * 5000;
-  setTimeout(cycleImages, delay);
-}
-setTimeout(cycleImages, 5000);
-
-/* 键盘监听 /admin */
-let typed = '';
-document.addEventListener('keydown', (e) => {
-    typed += e.key;
-    if (typed.endsWith('/admin')) {
-        const pw = prompt('请输入管理员密码：');
-        if (pw === '1234') { // 这里可以自定义管理员密码
-            alert('管理员模式已开启！');
-            isAdmin = true;
-        } else {
-            alert('密码错误！');
+  function initGrid() {
+    grid.innerHTML = '';
+    for (let i=1; i<=n; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.innerText = 'Q'+i;
+      // 从 Firebase 获取状态
+      db.ref('Q'+i).once('value').then(snapshot=>{
+        if(snapshot.exists() && snapshot.val().question) {
+          cell.classList.add('used');
         }
-        typed = '';
+      });
+      cell.onclick = ()=>openQuestion(i);
+      grid.appendChild(cell);
     }
-});
+  }
+
+  function openQuestion(i) {
+    const key = 'Q'+i;
+    db.ref(key).once('value').then(snapshot=>{
+      const data = snapshot.val();
+      if (isAdmin) {
+        let reply = data ? data.reply : '';
+        popupContent.innerHTML = `<h3>Q${i}</h3>`+
+          `<p><b>问题：</b>${data ? data.question : '(暂无问题)'}</p>`+
+          `<textarea id='adminReply'>${reply}</textarea>`+
+          `<button class='btn-primary' onclick='submitAdminReply(${i})'>提交回复</button>`;
+        popup.style.display = 'block';
+        return;
+      }
+      if(!data) {
+        popupContent.innerHTML = `<h3>在 Q${i} 提问</h3><textarea id="questionInput" placeholder="写下你的问题..."></textarea><button class="btn-primary" onclick="submitQuestion(${i})">我问完啦</button>`;
+      } else {
+        const pw = prompt('请输入密码以查看 Q'+i+'：');
+        if(pw === data.password) showQuestion(i, data);
+        else { alert('密码错误！'); return; }
+      }
+      popup.style.display = 'block';
+    });
+  }
+
+  function submitQuestion(i) {
+    const question = document.getElementById('questionInput').value.trim();
+    if(!question) return alert('请先输入问题！');
+    const password = Math.floor(1000 + Math.random()*9000).toString();
+    const data = {question, password, reply:""};
+    db.ref('Q'+i).set(data).then(()=>{
+      document.querySelectorAll('.cell')[i-1].classList.add('used');
+      popupContent.innerHTML = `<p>你的问题已提交！</p><p>请记住密码：<b>${password}</b></p>`;
+    });
+  }
+
+  function submitAdminReply(i){
+    const replyText = document.getElementById('adminReply').value.trim();
+    db.ref('Q'+i).update({reply: replyText}).then(()=>{
+      popup.style.display = 'none';
+      initGrid();
+    });
+  }
+
+  function showQuestion(i,data){
+    popupContent.innerHTML = `<h3>Q${i}</h3><p><b>问题：</b>${data.question}</p><p><b>回复：</b>${data.reply ? data.reply : '(暂时还没有回复)'}</p>`;
+  }
+
+  function closePopup(){ popup.style.display='none'; }
+
+  // 图片轮播
+  const imgs = document.querySelectorAll('#image-box img');
+  let current = 0;
+  function cycleImages(){
+    imgs[current].classList.remove('active');
+    current = (current+1)%imgs.length;
+    imgs[current].classList.add('active');
+    setTimeout(cycleImages,5000 + Math.random()*5000);
+  }
+  setTimeout(cycleImages,5000);
+
+  // 管理员模式 /admin
+  let typed='';
+  document.addEventListener('keydown',(e)=>{
+    typed += e.key;
+    if(typed.endsWith('/admin')){
+      const pw = prompt('请输入管理员密码：');
+      if(pw==='1234'){ alert('管理员模式已开启！'); isAdmin=true; }
+      else alert('密码错误！');
+      typed='';
+    }
+  });
 </script>
 </body>
 </html>
