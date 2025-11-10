@@ -132,8 +132,9 @@
 </div>
 
 <!-- ✅ Firebase SDK 正确加载 -->
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<!-- 用 Cloudflare 镜像，加载更稳定 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
 
 <script>
   // ✅ 初始化 Firebase
@@ -259,3 +260,4 @@
 </script>
 </body>
 </html>
+
