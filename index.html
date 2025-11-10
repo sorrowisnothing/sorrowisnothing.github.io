@@ -192,6 +192,36 @@
     }
   });
 
+  <!-- 管理员清空所有问答按钮 -->
+<script>
+function addAdminClearButton() {
+  if (!isAdmin) return; // 不是管理员不显示
+
+  // 创建按钮
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'btn-clear';
+  clearBtn.innerText = '清空所有问答';
+
+  // 按钮点击事件
+  clearBtn.onclick = () => {
+    if (confirm('确定清空所有问答吗？此操作不可恢复！')) {
+      db.ref('questions').remove().then(() => {
+        // 清空格子样式
+        document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('used'));
+        alert('已清空所有问答');
+      }).catch(err => alert('清空失败: ' + err));
+    }
+  };
+
+  // 添加到页面
+  document.body.appendChild(clearBtn);
+}
+
+// 在管理员登录成功后调用
+// 示例：在 isAdmin = true 后
+if (isAdmin) addAdminClearButton();
+</script>
+
   // ✅ 打开问题
   function openQuestion(i) {
     const key = 'Q' + i;
