@@ -13,19 +13,18 @@
     overflow: hidden;
   }
 
-  /* 左侧区域 */
   #left {
-    width: 40%;
+   width: 40%;
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
-    padding: 25px 0 0 60px;
+    padding: 25px 0 0 60px; /* 标题离边框1.3cm */
   }
 
   h1 {
-    color: black;
+      color: black;
     font-size: 5.1em;
     letter-spacing: 1px;
     text-align: left;
@@ -33,27 +32,24 @@
   }
 
   #image-box {
-    width: 145%;
-    aspect-ratio: 3/4.1;
+    width: 100%;
+    aspect-ratio: 3/4.1; /* 轻微拉高比例避免裁切过多 */
     overflow: hidden;
     position: relative;
     border-radius: 8px;
   }
 
   #image-box img {
-    width: 100%;
+  width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: cover; /* 铺满容器，无白边 */
     position: absolute;
     opacity: 0;
     transition: opacity 2s ease-in-out;
   }
 
-  #image-box img.active {
-    opacity: 1;
-  }
+  #image-box img.active { opacity: 1; }
 
-  /* 右侧问答墙 */
   #right {
     width: 60%;
     padding: 60px 40px;
@@ -66,7 +62,7 @@
   #grid {
     display: grid;
     grid-template-columns: repeat(6, 60px);
-    grid-gap: 30px;
+    grid-gap: 35px;
     justify-content: center;
     margin-top: 100px;
   }
@@ -85,42 +81,31 @@
     transition: transform 0.15s;
   }
 
-  .cell:hover {
-    transform: scale(1.05);
-  }
-
-  .cell.used {
-    background-color: #9C3D34;
-  }
+  .cell:hover { transform: scale(1.05); }
+  .cell.used { background-color: #9C3D34; }
 
   .popup {
     position: fixed; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     background: white; padding: 20px; border-radius: 10px;
     box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    width: 340px; display: none;
+    width: 360px; display: none;
     font-family: sans-serif;
   }
 
   textarea { width: 100%; height: 100px; }
 
-  button.btn-primary {
-    background-color: #23406F;
-    color: white;
-    padding: 8px 12px;
+  button {
     border: none;
     border-radius: 5px;
+    padding: 8px 12px;
+    margin-top: 10px;
     cursor: pointer;
   }
 
-  button.btn-close {
-    background-color: #ccc;
-    margin-top: 10px;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-  }
+  .btn-primary { background: #23406F; color: white; }
+  .btn-close { background: #ccc; }
+
 </style>
 </head>
 <body>
@@ -146,13 +131,12 @@
   <button class="btn-close" onclick="closePopup()">关闭</button>
 </div>
 
-<!-- Firebase compat SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+<!-- ✅ Firebase SDK 正确加载 -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 
 <script>
-window.addEventListener('load', function() {
-  // ====== Firebase 配置 ======
+  // ✅ 初始化 Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyByFoQX50OAAYqtaw269aHLcvtuluuvjgc",
     authDomain: "searchingforjws.firebaseapp.com",
@@ -163,116 +147,115 @@ window.addEventListener('load', function() {
     appId: "1:150080883645:web:0338463776f07c603260d4",
     measurementId: "G-Z7FHGNZPNL"
   };
-
-  // 初始化 Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
+  // ✅ 全局变量
+  let isAdmin = false;
   const n = 48;
   const grid = document.getElementById('grid');
   const popup = document.getElementById('popup');
   const popupContent = document.getElementById('popup-content');
-  let isAdmin = false;
 
-  // 初始化网格
-  function initGrid() {
-    grid.innerHTML = '';
-    for (let i = 1; i <= n; i++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.innerText = 'Q' + i;
-      db.ref('Q' + i).once('value').then(snapshot => {
-        if (snapshot.exists() && snapshot.val().question) {
-          cell.classList.add('used');
-        }
-      });
-      cell.onclick = () => openQuestion(i);
-      grid.appendChild(cell);
-    }
+  // ✅ 初始化格子
+  for (let i = 1; i <= n; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.innerText = 'Q' + i;
+    cell.onclick = () => openQuestion(i);
+    grid.appendChild(cell);
   }
 
+  function refreshGrid() {
+    db.ref('questions').once('value').then(snapshot => {
+      const data = snapshot.val() || {};
+      document.querySelectorAll('.cell').forEach((cell, i) => {
+        const key = 'Q' + (i + 1);
+        if (data[key]) cell.classList.add('used');
+      });
+    });
+  }
+  refreshGrid();
+
+  // ✅ 管理员模式
+  window.addEventListener('keydown', e => {
+    if (e.key === '/') {
+      let input = prompt('输入 /admin 进入管理员模式：');
+      if (input === '/admin') {
+        const pw = prompt('管理员密码：');
+        if (pw === 'jws0522') {
+          isAdmin = true;
+          alert('进入管理员模式');
+        } else alert('密码错误');
+      }
+    }
+  });
+
+  // ✅ 打开问题
   function openQuestion(i) {
     const key = 'Q' + i;
-    db.ref(key).once('value').then(snapshot => {
+    db.ref('questions/' + key).once('value').then(snapshot => {
       const data = snapshot.val();
-      if (isAdmin) {
-        let reply = data ? data.reply : '';
-        popupContent.innerHTML = `<h3>Q${i}</h3>` +
-          `<p><b>问题：</b>${data ? data.question : '(暂无问题)'}</p>` +
-          `<textarea id='adminReply'>${reply}</textarea>` +
-          `<button class='btn-primary' onclick='submitAdminReply(${i})'>提交回复</button>`;
-        popup.style.display = 'block';
-        return;
-      }
       if (!data) {
-        popupContent.innerHTML = `<h3>在 Q${i} 提问</h3><textarea id="questionInput" placeholder="写下你的问题..."></textarea><button class="btn-primary" onclick="submitQuestion(${i})">我问完啦</button>`;
+        popupContent.innerHTML = `
+          <h3>在 ${key} 提问</h3>
+          <textarea id="questionInput" placeholder="写下你的问题..."></textarea>
+          <button class="btn-primary" onclick="submitQuestion(${i})">提交</button>`;
       } else {
-        const pw = prompt('请输入密码以查看 Q' + i + '：');
-        if (pw === data.password) showQuestion(i, data);
-        else {
-          alert('密码错误！');
-          return;
+        if (isAdmin) {
+          popupContent.innerHTML = `
+            <h3>${key}</h3>
+            <p><b>问题：</b>${data.question}</p>
+            <p><b>回复：</b>${data.reply || '(还没有回复)'}</p>
+            <textarea id="replyInput" placeholder="写下回复..."></textarea>
+            <button class="btn-primary" onclick="replyQuestion(${i})">回复</button>`;
+        } else {
+          const pw = prompt(`请输入密码查看 ${key}`);
+          if (pw === data.password) {
+            popupContent.innerHTML = `
+              <h3>${key}</h3>
+              <p><b>问题：</b>${data.question}</p>
+              <p><b>回复：</b>${data.reply || '(还没有回复)'}</p>`;
+          } else alert('密码错误');
         }
       }
       popup.style.display = 'block';
     });
   }
 
-  window.submitQuestion = function (i) {
+  // ✅ 提交问题
+  function submitQuestion(i) {
     const question = document.getElementById('questionInput').value.trim();
-    if (!question) return alert('请先输入问题！');
-    const password = Math.floor(1000 + Math.random() * 9000).toString();
-    const data = { question, password, reply: "" };
-    db.ref('Q' + i).set(data).then(() => {
-      document.querySelectorAll('.cell')[i - 1].classList.add('used');
-      popupContent.innerHTML = `<p>你的问题已提交！</p><p>请记住密码：<b>${password}</b></p>`;
-    });
-  };
-
-  window.submitAdminReply = function (i) {
-    const replyText = document.getElementById('adminReply').value.trim();
-    db.ref('Q' + i).update({ reply: replyText }).then(() => {
-      popup.style.display = 'none';
-      initGrid();
-    });
-  };
-
-  function showQuestion(i, data) {
-    popupContent.innerHTML = `<h3>Q${i}</h3><p><b>问题：</b>${data.question}</p><p><b>回复：</b>${data.reply ? data.reply : '(暂时还没有回复)'}</p>`;
+    if (!question) return alert('请输入问题！');
+    const password = Math.floor(1000 + Math.random() * 9000);
+    const key = 'Q' + i;
+    db.ref('questions/' + key).set({ question, password: password.toString(), reply: "" });
+    document.querySelectorAll('.cell')[i-1].classList.add('used');
+    popupContent.innerHTML = `<p>你的问题已提交！请记住密码：<b>${password}</b></p>`;
   }
 
-  window.closePopup = function () {
+  // ✅ 回复问题（管理员）
+  function replyQuestion(i) {
+    const reply = document.getElementById('replyInput').value.trim();
+    if (!reply) return alert('请输入回复内容');
+    const key = 'Q' + i;
+    db.ref('questions/' + key + '/reply').set(reply);
+    alert('回复成功！');
     popup.style.display = 'none';
-  };
+  }
 
-  // 图片轮播
+  function closePopup() { popup.style.display = 'none'; }
+
+  // ✅ 图片轮播
   const imgs = document.querySelectorAll('#image-box img');
   let current = 0;
   function cycleImages() {
     imgs[current].classList.remove('active');
     current = (current + 1) % imgs.length;
     imgs[current].classList.add('active');
-    setTimeout(cycleImages, 5000 + Math.random() * 5000);
+    setTimeout(cycleImages, 6000 + Math.random() * 4000);
   }
   setTimeout(cycleImages, 5000);
-
-  // 管理员模式
-  let typed = '';
-  document.addEventListener('keydown', (e) => {
-    typed += e.key;
-    if (typed.endsWith('/admin')) {
-      const pw = prompt('请输入管理员密码：');
-      if (pw === '1234') {
-        alert('管理员模式已开启！');
-        isAdmin = true;
-      } else alert('密码错误！');
-      typed = '';
-    }
-  });
-
-  // ✅ 等 Firebase 就绪后再初始化网格
-  initGrid();
-});
 </script>
 </body>
 </html>
